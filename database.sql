@@ -1,0 +1,22 @@
+CREATE DATABASE IF NOT EXISTS mon_projet_db;
+USE mon_projet_db;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nom VARCHAR(100) NOT NULL,
+  prenom VARCHAR(100) NOT NULL,
+  date_naissance DATE NOT NULL,
+  adresse VARCHAR(255) NOT NULL,
+  telephone VARCHAR(20) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  verified TINYINT(1) DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS appointments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  date_rdv DATE NOT NULL,
+  heure_rdv TIME NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
