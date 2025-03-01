@@ -1,40 +1,51 @@
 <?php
-require_once __DIR__ . '/config.php'; // Chargement de la config
-// session_start() si pas déjà dans config.php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+/**
+ * verify.php - Activation du compte utilisateur
+ */
+require_once __DIR__ . '/config.php';
+
+// Vérifier si le token est présent
+if (!isset($_GET['token']) || empty($_GET['token'])) {
+    // Rediriger vers la page de connexion avec un message d'erreur
+    $_SESSION['flash_error'] = "Lien d'activation invalide ou expiré.";
+    header("Location: login.php");
+    exit;
 }
 
-if (!isset($_GET['token'])) {
-    die("Token manquant.");
-}
+$token = trim($_GET['token']);
 
-$token = $_GET['token'];
-
-// Vérifier si le token correspond à un compte non vérifié
+// Vérifier si le token existe dans la base de données
 $stmt = $conn->prepare("SELECT id FROM users WHERE verification_token = ? AND verified = 0");
 $stmt->bind_param("s", $token);
 $stmt->execute();
 $result = $stmt->get_result();
-$user = $result->fetch_assoc();
 
-if (!$user) {
-    die("Token invalide ou compte déjà vérifié.");
+if ($result->num_rows === 0) {
+    // Token invalide ou déjà utilisé
+    $_SESSION['flash_error'] = "Ce lien d'activation est invalide ou a déjà été utilisé.";
+    header("Location: login.php");
+    exit;
 }
 
-// Activer le compte (verified = 1)
-$stmtUpdate = $conn->prepare("UPDATE users SET verified = 1, verification_token = '' WHERE id = ?");
-$stmtUpdate->bind_param("i", $user['id']);
-if ($stmtUpdate->execute()) {
-    // Connecter automatiquement l’utilisateur
-    $_SESSION['user_id'] = $user['id'];
+// Récupérer l'ID de l'utilisateur
+$user = $result->fetch_assoc();
+$userId = $user['id'];
 
-    // Stocker un "flash message" : il sera affiché sur la page de profil
-    $_SESSION['flash_message'] = "Votre compte a été activé avec succès !";
+// Activer le compte
+$updateStmt = $conn->prepare("UPDATE users SET verified = 1, verification_token = '' WHERE id = ?");
+$updateStmt->bind_param("i", $userId);
 
-    // Redirection immédiate vers le profil
+if ($updateStmt->execute()) {
+    // Connecter automatiquement l'utilisateur
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['flash_message'] = "Votre compte a été activé avec succès ! Vous pouvez maintenant vous connecter.";
+    
+    // Rediriger vers la page de profil
     header("Location: profile.php");
     exit;
 } else {
-    echo "Erreur lors de la vérification du compte.";
+    // Erreur lors de l'activation
+    $_SESSION['flash_error'] = "Une erreur s'est produite lors de l'activation de votre compte. Veuillez réessayer.";
+    header("Location: login.php");
+    exit;
 }

@@ -74,58 +74,196 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         }
     }
 }
+
+// Récupérer les prochains rendez-vous
+$stmtAppointments = $conn->prepare("SELECT id, date_rdv, heure_rdv FROM appointments WHERE user_id = ? AND date_rdv >= CURDATE() ORDER BY date_rdv ASC, heure_rdv ASC");
+$stmtAppointments->bind_param("i", $userId);
+$stmtAppointments->execute();
+$resultAppointments = $stmtAppointments->get_result();
+$appointments = [];
+while ($row = $resultAppointments->fetch_assoc()) {
+    $appointments[] = $row;
+}
+
+$pageTitle = "Mon Profil";
+require_once __DIR__ . '/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Profil</title>
-</head>
-<body>
-<h1>Mon profil</h1>
 
-<!-- Afficher le message s'il existe -->
-<?php if ($flashMessage): ?>
-    <p style="color: green;"><?php echo e($flashMessage); ?></p>
-<?php endif; ?>
+<div class="container">
+    <div class="row">
+        <!-- Colonne de gauche - Informations utilisateur -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h3 mb-0"><i class="bi bi-person-circle"></i> Mon profil</h1>
+                </div>
+                <div class="card-body">
+                    <?php if ($error): ?>
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-circle"></i> <?php echo e($error); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($success): ?>
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> <?php echo e($success); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <form action="profile.php" method="post" data-validate="true">
+                        <input type="hidden" name="csrf_token" value="<?php echo e($csrfToken); ?>">
+                        <input type="hidden" name="update_profile" value="1">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label" for="nom">Nom</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                        <input type="text" id="nom" name="nom" class="form-control" value="<?php echo e($user['nom']); ?>" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label" for="prenom">Prénom</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                        <input type="text" id="prenom" name="prenom" class="form-control" value="<?php echo e($user['prenom']); ?>" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="date_naissance">Date de naissance</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                                <input type="date" id="date_naissance" name="date_naissance" class="form-control" value="<?php echo e($user['date_naissance']); ?>" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="adresse">Adresse postale</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                <input type="text" id="adresse" name="adresse" class="form-control" value="<?php echo e($user['adresse']); ?>" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="telephone">Numéro de téléphone</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input type="tel" id="telephone" name="telephone" class="form-control" value="<?php echo e($user['telephone']); ?>" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            <label class="form-label" for="email">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input type="email" id="email" name="email" class="form-control" value="<?php echo e($user['email']); ?>" required>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Mettre à jour
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="appointment.php" class="btn btn-outline">
+                            <i class="bi bi-calendar-plus"></i> Prendre un rendez-vous
+                        </a>
+                        <a href="delete_account.php" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Supprimer mon compte
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Colonne de droite - Menu utilisateur et rendez-vous -->
+        <div class="col-lg-4">
+            <!-- Carte Menu utilisateur - CORRIGÉE pour le footer -->
+            <div class="user-menu">
+                <div class="user-menu-header">
+                    <h3><i class="bi bi-gear"></i> Menu utilisateur</h3>
+                </div>
+                <ul class="user-menu-list">
+                    <li>
+                        <a href="profile.php">
+                            <i class="bi bi-person-circle"></i> Mon profil
+                        </a>
+                    </li>
+                    <li>
+                        <a href="appointment.php">
+                            <i class="bi bi-calendar-plus"></i> Prendre rendez-vous
+                        </a>
+                    </li>
+                    <li>
+                        <a href="cancel_appointment.php">
+                            <i class="bi bi-calendar-x"></i> Annuler rendez-vous
+                        </a>
+                    </li>
+                    <li>
+                        <a href="change_password.php">
+                            <i class="bi bi-key"></i> Changer de mot de passe
+                        </a>
+                    </li>
+                    <li>
+                        <a href="logout.php">
+                            <i class="bi bi-box-arrow-right"></i> Se déconnecter
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Carte Mes rendez-vous -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0"><i class="bi bi-calendar-check"></i> Mes rendez-vous</h2>
+                </div>
+                <div class="card-body">
+                    <?php if (count($appointments) > 0): ?>
+                        <ul class="list-group">
+                            <?php foreach ($appointments as $app): ?>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi bi-calendar-event text-primary"></i>
+                                        <?php 
+                                        $date = new DateTime($app['date_rdv']);
+                                        echo e($date->format('d/m/Y')); 
+                                        ?>
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-primary">
+                                            <i class="bi bi-clock"></i> <?php echo e($app['heure_rdv']); ?>
+                                        </span>
+                                        <a href="cancel_appointment.php?id=<?php echo e($app['id']); ?>" class="btn btn-sm btn-danger ms-2">
+                                            <i class="bi bi-x"></i>
+                                        </a>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <div class="text-center py-3">
+                            <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                            <p class="mt-2">Vous n'avez aucun rendez-vous à venir.</p>
+                            <a href="appointment.php" class="btn btn-sm btn-primary mt-2">
+                                <i class="bi bi-calendar-plus"></i> Prendre rendez-vous
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-<p>Bonjour <?php echo e($user['prenom']); ?> !</p>
-
-<?php if ($error): ?>
-    <p style="color:red;"><?php echo e($error); ?></p>
-<?php endif; ?>
-<?php if ($success): ?>
-    <p style="color:green;"><?php echo e($success); ?></p>
-<?php endif; ?>
-
-<form action="profile.php" method="post">
-    <input type="hidden" name="csrf_token" value="<?php echo e($csrfToken); ?>">
-    <input type="hidden" name="update_profile" value="1">
-
-    <label>Nom :</label><br>
-    <input type="text" name="nom" value="<?php echo e($user['nom']); ?>" required><br><br>
-
-    <label>Prénom :</label><br>
-    <input type="text" name="prenom" value="<?php echo e($user['prenom']); ?>" required><br><br>
-
-    <label>Date de naissance :</label><br>
-    <input type="date" name="date_naissance" value="<?php echo e($user['date_naissance']); ?>" required><br><br>
-
-    <label>Adresse postale :</label><br>
-    <input type="text" name="adresse" value="<?php echo e($user['adresse']); ?>" required><br><br>
-
-    <label>Téléphone :</label><br>
-    <input type="tel" name="telephone" value="<?php echo e($user['telephone']); ?>" required><br><br>
-
-    <label>Email :</label><br>
-    <input type="email" name="email" value="<?php echo e($user['email']); ?>" required><br><br>
-
-    <button type="submit">Mettre à jour</button>
-</form>
-
-<p><a href="logout.php">Se déconnecter</a></p>
-<p><a href="delete_account.php">Supprimer mon compte</a></p>
-<p><a href="appointment.php">Prendre un rendez-vous</a></p>
-<p><a href="cancel_appointment.php">Annuler un rendez-vous</a></p>
-</body>
-</html>
+<?php require_once __DIR__ . '/footer.php'; ?>
