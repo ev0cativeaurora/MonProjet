@@ -27,7 +27,7 @@ function sendVerificationEmail($to, $subject, $body) {
         $mail->SMTPAuth   = true;             
         // Identifiants Gmail : votre email et mot de passe d'application
         $mail->Username   = 'anouargamer1@gmail.com';     
-        $mail->Password   = 'albo exfb gqvl aemc';         
+        $mail->Password   = '**************************************************************';         
         
         // Choisissez SSL (port 465) OU TLS (port 587)
         // (décommentez la configuration souhaitée)
